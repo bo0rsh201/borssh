@@ -57,7 +57,7 @@ func (c compiler) compile() error {
 	allContent := bytes.NewBuffer([]byte{})
 	baseDir := c.ph.getLocalBaseDir()
 	for _, file := range config.BashProfile {
-		fullPath := baseDir + "/bash/" + file
+		fullPath := baseDir + "/" + file
 		content, err := ioutil.ReadFile(fullPath)
 		if err != nil {
 			return err
