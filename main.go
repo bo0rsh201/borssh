@@ -3,99 +3,110 @@ import (
 	"os"
 	"fmt"
 	"syscall"
+	"errors"
+	"flag"
+	"io/ioutil"
 )
 const COMMAND_COMPILE = "compile"
 const COMMAND_CONNECT = "connect"
-
-func failOnErr(err error) {
-	if err != nil {
-		fatal(err.Error())
-	}
-}
-
-func fatal(msg string) {
-	fmt.Fprintf(os.Stderr, msg + "\n")
-	os.Exit(1)
-}
+const FLAG_QUITE = "q"
 
 func printUsage() {
-	usage := "Usage: borssh COMMAND [arg...]\n\n"
+	usage := "Usage: borssh COMMAND [flags...] [args...]\n\n"
 	usage += "A simple ssh wrapper that helps you to keep all your dot files up to date\n\n"
 	usage += "Commands:\n"
 	usage += "\t%s\t\t\tCompiles dot files for latest config version\n"
-	usage += "\t%s <target>\tConnect with latest compiled version\n\n"
+	usage += "\t%s <target>\tConnect with latest compiled version\n"
+	usage += "Flags:\n"
+	usage += "\t-%s\t\t\tQuite mode (suppress all output)\n\n"
 	usage += "More info at http://github.com/bo0rsh201/borssh\n"
-	fmt.Fprintf(os.Stderr, usage, COMMAND_COMPILE, COMMAND_CONNECT)
+	fmt.Fprintf(os.Stderr, usage, COMMAND_COMPILE, COMMAND_CONNECT, FLAG_QUITE)
 	os.Exit(1)
 }
 
 func main()  {
-	if len(os.Args) < 2 {
+	fset := flag.NewFlagSet("basic", flag.ContinueOnError)
+	fset.SetOutput(ioutil.Discard)
+	quite := fset.Bool("q", false, "")
+	fset.Parse(os.Args[1:])
+	args := fset.Args()
+	if len(args) < 1 {
 		printUsage()
 	}
-	switch os.Args[1] {
+	pp := NewProgressPrinter(*quite)
+	switch args[0] {
 	case COMMAND_CONNECT:
-		if len(os.Args) < 3 {
+		if len(args) < 2 {
 			printUsage()
 		}
+		pp.Start("Checking local hash")
 		c, err := NewCompiler()
-		failOnErr(err)
+		pp.CheckError(err)
 		localHash, err := c.getLocalHash()
 		if os.IsNotExist(err) {
-			fatal("Cannot find compiled version of dot files\nYou should run compile command first")
+			err = errors.New("Cannot find compiled version of dot files. You should run compile command first")
 		}
-		ex, err := NewExecutor(os.Args[2])
-		failOnErr(err)
+		pp.CheckAndComplete(err)
+
+		pp.Start("Checking remote hash")
+		ex, err := NewExecutor(args[1])
+		pp.CheckError(err)
 		remoteHash, err := c.getRemoteHash(ex)
-		failOnErr(err)
+		pp.CheckAndComplete(err)
 		if remoteHash != localHash {
+			pp.Start("Syncing base dir")
 			cmd, err := ex.rsync(
 				c.ph.getLocalBaseDir(),
-				c.ph.getRemoteHomePath(),
+				c.ph.getRemoteHomePath() + "/",
 				"--delete",
 				"--copy-unsafe-links",
 				"--exclude",
 				COMPILED_HASH_FILE,
 			)
-			failOnErr(err)
+			pp.CheckError(err)
 			out, err := cmd.CombinedOutput()
 			if err != nil {
-				fatal(fmt.Sprint("Failed to rsync base dir: ", err.Error(), " output: ", string(out)))
+				err = fmt.Errorf("Failed to rsync base dir: '%s' output: '%s'", err.Error(), string(out))
 			}
+			pp.CheckAndComplete(err)
+
+			pp.Start("Installing remote")
 			err = c.install(
 				ex,
 				c.ph.getRemoteBashProfilePath(),
 				c.ph.getRemoteCompiledBashProfilePath(),
 			)
-			failOnErr(err)
+			pp.CheckAndComplete(err)
 
+			pp.Start("Syncing hash file")
 			cmd, err = ex.rsync(
 				c.ph.getLocalHashPath(),
 				c.ph.getRemoteHashPath(),
 			)
-			failOnErr(err)
+			pp.CheckError(err)
 			out, err = cmd.CombinedOutput()
 			if err != nil {
-				fatal(fmt.Sprint("Failed to rsync compiled hash: ", err.Error(), " output: ", string(out)))
+				err = fmt.Errorf("Failed to rsync compiled hash: '%s' output: '%s'", err.Error(), string(out))
 			}
+			pp.CheckAndComplete(err)
 		}
 		err = syscall.Exec(ex.sshBinary, []string{"-t", ex.host}, os.Environ())
-		failOnErr(err)
+		pp.failOnError(err)
 		break
 	case COMMAND_COMPILE:
-		fmt.Print("Compiling...\n")
+		pp.Start("Compiling")
 		c, err := NewCompiler()
-		failOnErr(err)
+		pp.CheckError(err)
 		err = c.compile()
-		failOnErr(err)
-		fmt.Print("Done\nInstalling...\n")
+		pp.CheckAndComplete(err)
+
+		pp.Start("Installing")
 		err = c.install(
 			NewLocalExecutor(),
 			c.ph.getLocalBashProfilePath(),
 			c.ph.getLocalCompiledBashProfilePath(),
 		)
-		failOnErr(err)
-		fmt.Print("Done\n")
+		pp.CheckAndComplete(err)
 		break
 	default:
 		printUsage()
