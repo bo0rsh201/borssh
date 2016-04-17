@@ -11,6 +11,12 @@ config file: $HOME/.borssh/config.toml
 ```
 BashProfile = [ "bash/aliases", "bash/prompt" ]
 ```
+# supported OS
+Supported OS
+- Darwin (OS X)
+- Linux
+
+I am sorry, but borssh was not tested on Windows and seems to not to work there correctly
 # installation
 You can get binaries [here](https://github.com/bo0rsh201/borssh/releases/latest)
 
