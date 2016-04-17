@@ -29,3 +29,8 @@ and includes it into local .bash_profile
 borssh connect <host>
 ```
 checks remote config version, performs sync and install if required and does ssh
+
+# flags
+```
+-q Quite mode (suppress all output)
+```
