@@ -12,10 +12,13 @@ config file: $HOME/.borssh/config.toml
 BashProfile = [ "bash/aliases", "bash/prompt" ]
 ```
 # installation
+You can get binaries [here](https://github.com/bo0rsh201/borssh/releases/latest)
 
+Or install it manually with
 ```
 go install github.com/bo0rsh201/borssh
 ```
+*you should have Go [installed](https://golang.org/doc/install)*
 # commands
 ```
 borssh compile
