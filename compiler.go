@@ -35,7 +35,7 @@ func (c compiler) getRemoteHash(ex executor) (hash string, err error)  {
 	))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		err = errors.New(fmt.Sprint(err, " stderr: ", string(out)))
+		err = errors.New(fmt.Sprint(err, " stderr:\n", string(out)))
 		return
 	}
 	hash = strings.TrimRight(string(out), "\n")

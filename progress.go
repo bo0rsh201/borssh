@@ -36,9 +36,7 @@ func (pp *ProgressPrinter) failOnError(err error) {
 	if err == nil {
 		return
 	}
-	if !pp.quite {
-		color.Red(err.Error())
-	}
+	color.Red(err.Error())
 	os.Exit(1)
 }
 
@@ -81,5 +79,6 @@ func (pp *ProgressPrinter) CheckAndComplete(err error) {
 func (pp *ProgressPrinter) CheckError(err error) {
 	if err != nil {
 		pp.done <- err
+		<- pp.wait
 	}
 }
