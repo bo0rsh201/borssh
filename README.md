@@ -7,7 +7,7 @@ Let's see how it works
 
 ![intro](https://raw.githubusercontent.com/bo0rsh201/borssh/asserts/record.gif)
 
-to make your borssh work the same way you need to add something like 
+to make your borssh work the same way (on simple "ssh" command call), you need to add something like 
 ```
 ssh () {
         if [ "$#" -eq 1 ]; then
