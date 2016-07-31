@@ -19,6 +19,15 @@ ssh () {
 ```
 to your ~/.bash_profile
 
+# installation
+You can get binaries [here](https://github.com/bo0rsh201/borssh/releases/latest)
+
+Or install it manually with
+```
+go install github.com/bo0rsh201/borssh
+```
+*you should have Go [installed](https://golang.org/doc/install)*
+
 # configuration
 ```
 home dir: $HOME/.borssh
@@ -35,14 +44,6 @@ Supported OS
 - Linux
 
 I am sorry, but borssh was not tested on Windows and seems to not to work there correctly
-# installation
-You can get binaries [here](https://github.com/bo0rsh201/borssh/releases/latest)
-
-Or install it manually with
-```
-go install github.com/bo0rsh201/borssh
-```
-*you should have Go [installed](https://golang.org/doc/install)*
 # commands
 ```
 borssh compile
