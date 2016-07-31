@@ -7,6 +7,18 @@ Let's see how it works
 
 ![intro](https://raw.githubusercontent.com/bo0rsh201/borssh/asserts/record.gif)
 
+to make your borssh work the same way you need to add something like 
+```
+ssh () {
+        if [ "$#" -eq 1 ]; then
+                borssh connect $1
+        else
+                /usr/bin/ssh $@
+        fi
+}
+```
+to your ~/.bash_profile
+
 # configuration
 ```
 home dir: $HOME/.borssh
