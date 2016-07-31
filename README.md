@@ -5,7 +5,7 @@ to any number of remote hosts transparently on ssh connection
 
 Let's see how it works
 
-[[ https://raw.githubusercontent.com/bo0rsh201/borssh/assets/record.gif|alt=intro ]]
+[[ https://raw.githubusercontent.com/bo0rsh201/borssh/asserts/record.gif|alt=intro ]]
 
 # configuration
 ```
