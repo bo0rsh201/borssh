@@ -1,5 +1,11 @@
 # borssh
-Simple ssh wrapper that transfers your dot files via ssh according to config
+Is a utility that helps you to transfer your local .bash_profile configuration
+
+to any number of remote hosts transparently on ssh connection
+
+Let's see how it works
+
+[[ https://raw.githubusercontent.com/bo0rsh201/borssh/assets/record.gif|alt=intro ]]
 
 # configuration
 ```
