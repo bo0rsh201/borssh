@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"time"
-	"strings"
-	"github.com/fatih/color"
 	"os"
+	"strings"
+	"time"
+
+	"github.com/fatih/color"
 )
 
 type ProgressPrinter struct {
-	done chan error
-	wait chan struct{}
+	done  chan error
+	wait  chan struct{}
 	quite bool
 }
 
@@ -23,6 +24,13 @@ func (pp *ProgressPrinter) print(a ...interface{}) {
 		return
 	}
 	fmt.Print(a...)
+}
+
+func (pp *ProgressPrinter) yellow(format string, a ...interface{}) {
+	if pp.quite {
+		return
+	}
+	color.Yellow(format, a...)
 }
 
 func (pp *ProgressPrinter) green(format string, a ...interface{}) {
@@ -68,17 +76,17 @@ func (pp *ProgressPrinter) Start(message string) {
 
 func (pp *ProgressPrinter) Complete() {
 	pp.done <- nil
-	<- pp.wait
+	<-pp.wait
 }
 
 func (pp *ProgressPrinter) CheckAndComplete(err error) {
 	pp.done <- err
-	<- pp.wait
+	<-pp.wait
 }
 
 func (pp *ProgressPrinter) CheckError(err error) {
 	if err != nil {
 		pp.done <- err
-		<- pp.wait
+		<-pp.wait
 	}
 }

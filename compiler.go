@@ -1,44 +1,29 @@
 package main
 
 import (
-	"io/ioutil"
-	"strings"
-	"fmt"
-	"errors"
-	"github.com/BurntSushi/toml"
-	"os"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
+	"github.com/BurntSushi/toml"
 )
 
 type compiler struct {
 	ph pathHelper
 }
 
-func (c compiler) getLocalHash() (h string, err error)  {
+func (c compiler) getLocalHash() (h string, err error) {
 	hashPath := c.ph.getLocalHashPath()
 	compiledHashBytes, err := ioutil.ReadFile(hashPath)
 	if err != nil {
 		return
 	}
 	h = strings.TrimRight(string(compiledHashBytes), "\n")
-	return
-}
-
-func (c compiler) getRemoteHash(ex executor) (hash string, err error)  {
-	hashPath := c.ph.getRemoteHashPath()
-	cmd := ex.command(fmt.Sprintf(
-		"if [ ! -f %s ]; then echo missing; exit 0; fi; cat %s",
-		hashPath,
-		hashPath,
-	))
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		err = errors.New(fmt.Sprint(err, " stderr:\n", string(out)))
-		return
-	}
-	hash = strings.TrimRight(string(out), "\n")
 	return
 }
 
@@ -95,7 +80,7 @@ func (c compiler) compile() error {
 
 func (c compiler) install(ex executor, profilePath string, compiledProfilePath string) error {
 	profilePathTmp := profilePath + ".tmp"
-	cmd := ex.command(fmt.Sprintf("touch %s", profilePath))
+	cmd := ex.command(fmt.Sprintf("touch %s", profilePath), false)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return errors.New(fmt.Sprint("Touch error: ", err.Error(), " : ", string(out)))
@@ -109,7 +94,7 @@ func (c compiler) install(ex executor, profilePath string, compiledProfilePath s
 		profilePathTmp,
 		profilePathTmp,
 		profilePath,
-	))
+	), true)
 	out, err = cmd.CombinedOutput()
 	if err != nil {
 		return errors.New(fmt.Sprint("Replace error: ", err.Error(), " : ", string(out)))

@@ -1,12 +1,13 @@
 package main
+
 import (
-	"os"
-	"fmt"
-	"syscall"
 	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
+	"os"
 )
+
 const COMMAND_COMPILE = "compile"
 const COMMAND_CONNECT = "connect"
 const FLAG_QUITE = "q"
@@ -24,7 +25,7 @@ func printUsage() {
 	os.Exit(1)
 }
 
-func main()  {
+func main() {
 	fset := flag.NewFlagSet("basic", flag.ContinueOnError)
 	fset.SetOutput(ioutil.Discard)
 	quite := fset.Bool("q", false, "")
@@ -39,59 +40,70 @@ func main()  {
 		if len(args) < 2 {
 			printUsage()
 		}
-		pp.Start("Checking local hash")
 		c, err := NewCompiler()
-		pp.CheckError(err)
+		pp.failOnError(err)
 		localHash, err := c.getLocalHash()
 		if os.IsNotExist(err) {
 			err = errors.New("Cannot find compiled version of dot files. You should run compile command first")
 		}
-		pp.CheckAndComplete(err)
-
-		pp.Start("Checking remote hash")
-		ex, err := NewExecutor(args[1])
-		pp.CheckError(err)
-		remoteHash, err := c.getRemoteHash(ex)
-		pp.CheckAndComplete(err)
-		if remoteHash != localHash {
-			pp.Start("Syncing base dir")
-			cmd, err := ex.rsync(
-				c.ph.getLocalBaseDir(),
-				c.ph.getRemoteHomePath() + "/",
-				"--delete",
-				"--copy-unsafe-links",
-				"--exclude",
-				COMPILED_HASH_FILE,
-			)
-			pp.CheckError(err)
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				err = fmt.Errorf("Failed to rsync base dir: '%s' output: '%s'", err.Error(), string(out))
-			}
-			pp.CheckAndComplete(err)
-
-			pp.Start("Installing remote")
-			err = c.install(
-				ex,
-				c.ph.getRemoteBashProfilePath(),
-				c.ph.getRemoteCompiledBashProfilePath(),
-			)
-			pp.CheckAndComplete(err)
-
-			pp.Start("Syncing hash file")
-			cmd, err = ex.rsync(
-				c.ph.getLocalHashPath(),
-				c.ph.getRemoteHashPath(),
-			)
-			pp.CheckError(err)
-			out, err = cmd.CombinedOutput()
-			if err != nil {
-				err = fmt.Errorf("Failed to rsync compiled hash: '%s' output: '%s'", err.Error(), string(out))
-			}
-			pp.CheckAndComplete(err)
-		}
-		err = syscall.Exec(ex.sshBinary, []string{"-t", ex.host}, os.Environ())
 		pp.failOnError(err)
+
+		ex, err := NewExecutor(args[1])
+		pp.failOnError(err)
+
+		ok, exitCode, err := ex.tryToConnect(localHash, c.ph.getRemoteHashPath())
+		pp.failOnError(err)
+		if ok {
+			os.Exit(exitCode)
+		}
+		pp.yellow("Hash file mismatch...")
+		pp.Start("Syncing base dir")
+		cmd, err := ex.rsync(
+			c.ph.getLocalBaseDir(),
+			c.ph.getRemoteHomePath()+"/",
+			"--delete",
+			"--copy-unsafe-links",
+			"--exclude",
+			COMPILED_HASH_FILE,
+		)
+		pp.CheckError(err)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			err = fmt.Errorf("Failed to rsync base dir: '%s' output: '%s'", err.Error(), string(out))
+		}
+		pp.CheckAndComplete(err)
+
+		pp.Start("Installing remote")
+		err = c.install(
+			ex,
+			c.ph.getRemoteBashProfilePath(),
+			c.ph.getRemoteCompiledBashProfilePath(),
+		)
+		pp.CheckAndComplete(err)
+
+		pp.Start("Syncing hash file")
+		cmd, err = ex.rsync(
+			c.ph.getLocalHashPath(),
+			c.ph.getRemoteHashPath(),
+		)
+		pp.CheckError(err)
+		out, err = cmd.CombinedOutput()
+		if err != nil {
+			err = fmt.Errorf("Failed to rsync compiled hash: '%s' output: '%s'", err.Error(), string(out))
+		}
+		pp.CheckAndComplete(err)
+
+		ok, exitCode, err = ex.tryToConnect(localHash, c.ph.getRemoteHashPath())
+		pp.failOnError(err)
+		if ok {
+			os.Exit(exitCode)
+		}
+		pp.failOnError(fmt.Errorf(
+			"Hash mismatch after sync.\n"+
+				"This should never happen.\n"+
+				"Maybe, it's an exit_code collision (reserved code is %d)",
+			EXIT_HASH_MISMATCH,
+		))
 		break
 	case COMMAND_COMPILE:
 		pp.Start("Compiling")

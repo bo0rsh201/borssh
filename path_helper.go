@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"errors"
+	"os"
 )
 
 const BORSSH_DIR = ".borssh"
@@ -12,9 +12,9 @@ const COMPILED_BASH_PROFILE_FILE = "bash_profile.compiled"
 const BASH_PROFILE_FILE = ".bash_profile"
 
 type pathHelper struct {
-	homeDir string
+	homeDir       string
 	remoteHomeDir string
-	localBaseDir string
+	localBaseDir  string
 	remoteBaseDir string
 }
 
