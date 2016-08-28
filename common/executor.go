@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"errors"
@@ -23,28 +23,30 @@ const (
 	EXIT_HASH_MISMATCH = 192
 )
 
-func NewExecutor(host string) (e executor, err error) {
-	e.host = host
+func NewExecutor(host string) (e *Executor, err error) {
+	e = &Executor{}
+	e.Host = host
 	sshBinary, err := exec.LookPath("ssh")
 	if err != nil {
 		return
 	}
-	e.sshBinary = sshBinary
+	e.SshBinary = sshBinary
 	return
 }
 
-func NewLocalExecutor() (e executor) {
-	e.isLocal = true
+func NewLocalExecutor() (e *Executor) {
+	e = &Executor{}
+	e.IsLocal = true
 	return e
 }
 
-type executor struct {
-	host      string
-	isLocal   bool
-	sshBinary string
+type Executor struct {
+	Host      string
+	IsLocal   bool
+	SshBinary string
 }
 
-func (e executor) getSshOptions() []string {
+func (e *Executor) getSshOptions() []string {
 	return []string{
 		"-o", fmt.Sprint("ConnectTimeout=", DEFAULT_CONNECT_TIMEOUT),
 		"-o", "LogLevel=ERROR",
@@ -56,8 +58,8 @@ func (e executor) getSshOptions() []string {
 	}
 }
 
-func (e executor) tryToConnect(hash, hashPath string) (bool, int, error) {
-	cmd := e.command(fmt.Sprintf(
+func (e *Executor) TryToConnect(hash, hashPath string) (bool, int, error) {
+	cmd := e.Command(fmt.Sprintf(
 		"if [ -f %s ] && [ $(cat %s) == %s ]; then exec bash -l; else exit %d; fi;",
 		hashPath,
 		hashPath,
@@ -80,8 +82,8 @@ func (e executor) tryToConnect(hash, hashPath string) (bool, int, error) {
 	return true, exitCode, nil
 }
 
-func (e executor) command(cmd string, isTerminal bool) *exec.Cmd {
-	if e.isLocal {
+func (e *Executor) Command(cmd string, isTerminal bool) *exec.Cmd {
+	if e.IsLocal {
 		return exec.Command("bash", "-c", cmd)
 	}
 	sshOptions := e.getSshOptions()
@@ -89,13 +91,13 @@ func (e executor) command(cmd string, isTerminal bool) *exec.Cmd {
 		sshOptions = append(sshOptions, "-t")
 	}
 	return exec.Command(
-		e.sshBinary,
-		append(sshOptions, e.host, "bash", fmt.Sprintf("-c '%s'", cmd))...,
+		e.SshBinary,
+		append(sshOptions, e.Host, "bash", fmt.Sprintf("-c '%s'", cmd))...,
 	)
 }
 
-func (e executor) rsync(src, dst string, moreOpts ...string) (*exec.Cmd, error) {
-	if e.isLocal {
+func (e *Executor) Rsync(src, dst string, moreOpts ...string) (*exec.Cmd, error) {
+	if e.IsLocal {
 		return nil, errors.New("Cannot perform rsync on local executor")
 	}
 	rsyncBinary, err := exec.LookPath("rsync")
@@ -105,14 +107,14 @@ func (e executor) rsync(src, dst string, moreOpts ...string) (*exec.Cmd, error) 
 	args := append(
 		[]string{
 			"-rlptz",
-			"-e", e.sshBinary + " " + strings.Join(e.getSshOptions(), " "),
+			"-e", e.SshBinary + " " + strings.Join(e.getSshOptions(), " "),
 		},
 		moreOpts...,
 	)
 	args = append(
 		args,
 		src,
-		e.host+":"+dst,
+		e.Host +":"+dst,
 	)
 	return exec.Command(
 		rsyncBinary,

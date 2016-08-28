@@ -4,72 +4,73 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/bo0rsh201/borssh/common"
 )
 
 type compiler struct {
-	ph pathHelper
+	drivers []Driver
 }
 
-func (c compiler) getLocalHash() (h string, err error) {
-	hashPath := c.ph.getLocalHashPath()
-	compiledHashBytes, err := ioutil.ReadFile(hashPath)
-	if err != nil {
-		return
+func (c compiler) compile(localHashPath string) error {
+	allHashes := bytes.NewBuffer([]byte{})
+	for _, driver := range c.drivers {
+		compiledFileName := driver.GetDstFileName(true)
+		// removing previously compiled file if it had to be
+		if compiledFileName != "" {
+			err := os.Remove(compiledFileName)
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+		if driver.IsEmpty() {
+			continue
+		}
+		allContent := bytes.NewBuffer([]byte{})
+		compiledFileNameTmp := compiledFileName + ".tmp"
+		// join all files into one ".compiled"
+		for _, fullPath := range driver.GetSourceFileNames() {
+			content, err := ioutil.ReadFile(fullPath)
+			if err != nil {
+				return err
+			}
+			err = allContent.WriteByte('\n')
+			if err != nil {
+				return err
+			}
+			_, err = allContent.Write(content)
+			if err != nil {
+				return err
+			}
+		}
+		// empty target name means that we should only do rsync
+		// no compile and no install (for custom files e.x.)
+		if compiledFileName != "" {
+			err := ioutil.WriteFile(compiledFileNameTmp, allContent.Bytes(), 0755)
+			if err != nil {
+				return err
+			}
+			err = os.Rename(compiledFileNameTmp, compiledFileName)
+			if err != nil {
+				return err
+			}
+		}
+		sum := md5.Sum(allContent.Bytes())
+		_, err := allHashes.Write(sum[:])
+		if err != nil {
+			return err
+		}
 	}
-	h = strings.TrimRight(string(compiledHashBytes), "\n")
-	return
-}
 
-func (c compiler) compile() error {
-	configData, err := ioutil.ReadFile(c.ph.getConfigPath())
-	if err != nil {
-		return err
-	}
-	config := &Config{}
-	_, err = toml.Decode(string(configData), config)
-	if err != nil {
-		return err
-	}
-	compiledFileName := c.ph.getLocalCompiledBashProfilePath()
-	compiledFileNameTmp := compiledFileName + ".tmp"
-	allContent := bytes.NewBuffer([]byte{})
-	baseDir := c.ph.getLocalBaseDir()
-	for _, file := range config.BashProfile {
-		fullPath := baseDir + "/" + file
-		content, err := ioutil.ReadFile(fullPath)
-		if err != nil {
-			return err
-		}
-		err = allContent.WriteByte('\n')
-		if err != nil {
-			return err
-		}
-		_, err = allContent.Write(content)
-		if err != nil {
-			return err
-		}
-	}
-	err = ioutil.WriteFile(compiledFileNameTmp, allContent.Bytes(), 0755)
-	if err != nil {
-		return err
-	}
-	err = os.Rename(compiledFileNameTmp, compiledFileName)
-	if err != nil {
-		return err
-	}
-	hashFileName := c.ph.getLocalHashPath()
+	hashFileName := localHashPath
 	hashFileNameTmp := hashFileName + ".tmp"
-	sum := md5.Sum(allContent.Bytes())
-	err = ioutil.WriteFile(
+	sum := md5.Sum(allHashes.Bytes())
+	err := ioutil.WriteFile(
 		hashFileNameTmp,
-		[]byte(hex.EncodeToString(sum[0:len(sum)])),
+		[]byte(hex.EncodeToString(sum[:])),
 		0755,
 	)
 	if err != nil {
@@ -78,35 +79,37 @@ func (c compiler) compile() error {
 	return os.Rename(hashFileNameTmp, hashFileName)
 }
 
-func (c compiler) install(ex executor, profilePath string, compiledProfilePath string) error {
-	profilePathTmp := profilePath + ".tmp"
-	cmd := ex.command(fmt.Sprintf("touch %s", profilePath), false)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return errors.New(fmt.Sprint("Touch error: ", err.Error(), " : ", string(out)))
-	}
-	cmd = ex.command(fmt.Sprintf(
-		"cat %s | grep -vF %s | cat > %s && echo \"source %s\" >> %s && mv %s %s",
-		profilePath,
-		BORSSH_DIR,
-		profilePathTmp,
-		compiledProfilePath,
-		profilePathTmp,
-		profilePathTmp,
-		profilePath,
-	), true)
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		return errors.New(fmt.Sprint("Replace error: ", err.Error(), " : ", string(out)))
+func (c compiler) install(ex *common.Executor) error {
+	for _, driver := range c.drivers {
+		err := driver.CleanInstalled(ex)
+		if err != nil {
+			return err
+		}
+		if driver.IsEmpty() {
+			continue
+		}
+		err = driver.Install(ex)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func NewCompiler() (c compiler, err error) {
-	ph, err := getPathHelper()
+func NewCompiler(ph *common.PathHelper) (c compiler, err error) {
+	var configData []byte
+	// we need to include local config, to we pass true
+	configData, err = ioutil.ReadFile(ph.GetConfigPath(true))
 	if err != nil {
 		return
 	}
-	c.ph = ph
+
+	config := &common.Config{}
+	_, err = toml.Decode(string(configData), config)
+	if err != nil {
+		return
+	}
+
+	c.drivers = getAllDrivers(ph, config)
 	return
 }
