@@ -5,7 +5,7 @@ to any number of remote hosts transparently on ssh connection
 
 Let's see how it works
 
-![intro](https://raw.githubusercontent.com/bo0rsh201/borssh/asserts/record.gif)
+![intro](https://raw.githubusercontent.com/bo0rsh201/borssh/assets/record.gif)
 
 to make your borssh work the same way (on simple "ssh" command call), you need to add something like 
 ```
