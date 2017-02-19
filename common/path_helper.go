@@ -8,6 +8,7 @@ import (
 const BORSSH_DIR = ".borssh"
 const CONFIG_FILE = "config"
 const COMPILED_HASH_FILE = "hash.compiled"
+const KNOWN_HOSTS_FILE = ".ssh/known_hosts"
 
 type PathHelper struct {
 	localHomeDir  string
@@ -43,6 +44,10 @@ func (ph *PathHelper) GetConfigPath(isLocal bool) string {
 
 func (ph *PathHelper) GetHashPath(isLocal bool) string {
 	return ph.GetBaseDir(isLocal) + "/" + COMPILED_HASH_FILE
+}
+
+func (ph *PathHelper) GetKnownHostsPath(isLocal bool) string {
+	return ph.GetHomeDir(isLocal) + "/" + KNOWN_HOSTS_FILE
 }
 
 func GetPathHelper() (ph *PathHelper, err error) {

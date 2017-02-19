@@ -7,8 +7,11 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
 	"github.com/bo0rsh201/borssh/common"
 )
+
+var paths *common.PathHelper
 
 const COMMAND_COMPILE = "compile"
 const COMMAND_CONNECT = "connect"
@@ -27,8 +30,8 @@ func printUsage() {
 	os.Exit(1)
 }
 
-func getLocalHash(localHashPath string) (h string, err error) {
-	compiledHashBytes, err := ioutil.ReadFile(localHashPath)
+func getLocalHash() (h string, err error) {
+	compiledHashBytes, err := ioutil.ReadFile(paths.GetHashPath(true))
 	if err != nil {
 		return
 	}
@@ -47,7 +50,8 @@ func main() {
 	}
 	pp := NewProgressPrinter(*quite)
 
-	ph, err := common.GetPathHelper()
+	var err error
+	paths, err = common.GetPathHelper()
 	pp.failOnError(err)
 
 	switch args[0] {
@@ -56,10 +60,10 @@ func main() {
 			printUsage()
 		}
 
-		c, err := NewCompiler(ph)
+		c, err := NewCompiler()
 		pp.failOnError(err)
 
-		localHash, err := getLocalHash(ph.GetHashPath(true))
+		localHash, err := getLocalHash()
 		if os.IsNotExist(err) {
 			err = errors.New("Cannot find compiled version of dot files. You should run compile command first")
 		}
@@ -68,7 +72,7 @@ func main() {
 		ex, err := common.NewExecutor(args[1])
 		pp.failOnError(err)
 
-		ok, exitCode, err := ex.TryToConnect(localHash, ph.GetHashPath(false))
+		ok, exitCode, err := ex.TryToConnect(localHash, paths.GetHashPath(false))
 		pp.failOnError(err)
 		if ok {
 			os.Exit(exitCode)
@@ -77,8 +81,8 @@ func main() {
 		pp.yellow("Hash file mismatch...")
 		pp.Start("Syncing base dir")
 		cmd, err := ex.Rsync(
-			ph.GetBaseDir(true),
-			ph.GetHomeDir(false)+"/",
+			paths.GetBaseDir(true),
+			paths.GetHomeDir(false)+"/",
 			"--delete",
 			"--copy-unsafe-links",
 			"--exclude",
@@ -98,8 +102,8 @@ func main() {
 
 		pp.Start("Syncing hash file")
 		cmd, err = ex.Rsync(
-			ph.GetHashPath(true),
-			ph.GetHashPath(false),
+			paths.GetHashPath(true),
+			paths.GetHashPath(false),
 		)
 		pp.CheckError(err)
 
@@ -109,7 +113,7 @@ func main() {
 		}
 		pp.CheckAndComplete(err)
 
-		ok, exitCode, err = ex.TryToConnect(localHash, ph.GetHashPath(false))
+		ok, exitCode, err = ex.TryToConnect(localHash, paths.GetHashPath(false))
 		pp.failOnError(err)
 		if ok {
 			os.Exit(exitCode)
@@ -122,15 +126,22 @@ func main() {
 		))
 		break
 	case COMMAND_COMPILE:
+
 		pp.Start("Compiling")
-		c, err := NewCompiler(ph)
+		compiler, err := NewCompiler()
 		pp.CheckError(err)
-		err = c.compile(ph.GetHashPath(true))
+		err = compiler.compile()
 		pp.CheckAndComplete(err)
 
 		pp.Start("Installing")
-		err = c.install(common.NewLocalExecutor())
+		err = compiler.install(common.NewLocalExecutor())
 		pp.CheckAndComplete(err)
+
+		pp.green("Initial sync")
+		syncer := &initialSyncer{compiler: compiler, printer: pp}
+		err = syncer.checkAndSync()
+		pp.failOnError(err)
+
 		break
 	default:
 		printUsage()

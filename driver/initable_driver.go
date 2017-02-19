@@ -1,8 +1,9 @@
 package driver
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
+
 	"github.com/bo0rsh201/borssh/common"
 )
 

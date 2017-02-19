@@ -59,6 +59,7 @@ func (e *Executor) getSshOptions() []string {
 }
 
 func (e *Executor) TryToConnect(hash, hashPath string) (bool, int, error) {
+
 	cmd := e.Command(fmt.Sprintf(
 		"if [ -f %s ] && [ $(cat %s) == %s ]; then exec bash -l; else exit %d; fi;",
 		hashPath,
@@ -80,6 +81,26 @@ func (e *Executor) TryToConnect(hash, hashPath string) (bool, int, error) {
 	}
 	// remote command success/error
 	return true, exitCode, nil
+}
+
+func (e *Executor) DoesVersionMatch(hash, hashPath string) (bool, error) {
+	cmd := e.Command(fmt.Sprintf(
+		"if [ -f %s ] && [ $(cat %s) == %s ]; then exit 0; else exit %d; fi;",
+		hashPath,
+		hashPath,
+		hash,
+		EXIT_HASH_MISMATCH,
+	), true)
+	exitCode, err := parseExecError(cmd.Run())
+	// ssh/generic error
+	if err != nil {
+		return false, err
+	}
+	if exitCode == EXIT_HASH_MISMATCH {
+		return false, nil
+	}
+	// remote command success/error
+	return true, nil
 }
 
 func (e *Executor) Command(cmd string, isTerminal bool) *exec.Cmd {
@@ -114,7 +135,7 @@ func (e *Executor) Rsync(src, dst string, moreOpts ...string) (*exec.Cmd, error)
 	args = append(
 		args,
 		src,
-		e.Host +":"+dst,
+		e.Host+":"+dst,
 	)
 	return exec.Command(
 		rsyncBinary,

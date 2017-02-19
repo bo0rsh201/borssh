@@ -14,7 +14,7 @@ type Driver interface {
 	Install(ex *common.Executor) error
 }
 
-func getAllDrivers(ph *common.PathHelper, c *common.Config) []Driver {
+func getAllDrivers(c *common.Config) []Driver {
 	res := []Driver{
 		&driver.BashProfileDriver{},
 		&driver.VimRcDriver{},
@@ -22,7 +22,7 @@ func getAllDrivers(ph *common.PathHelper, c *common.Config) []Driver {
 		&driver.CustomFilesDriver{},
 	}
 	for _, d := range res {
-		d.Init(ph, c)
+		d.Init(paths, c)
 	}
 	return res
 }

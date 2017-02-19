@@ -12,10 +12,11 @@ import (
 )
 
 type compiler struct {
+	config  *common.Config
 	drivers []Driver
 }
 
-func (c compiler) compile(localHashPath string) error {
+func (c compiler) compile() error {
 	allHashes := bytes.NewBuffer([]byte{})
 	for _, driver := range c.drivers {
 		compiledFileName := driver.GetDstFileName(true)
@@ -65,7 +66,7 @@ func (c compiler) compile(localHashPath string) error {
 		}
 	}
 
-	hashFileName := localHashPath
+	hashFileName := paths.GetHashPath(true)
 	hashFileNameTmp := hashFileName + ".tmp"
 	sum := md5.Sum(allHashes.Bytes())
 	err := ioutil.WriteFile(
@@ -96,10 +97,10 @@ func (c compiler) install(ex *common.Executor) error {
 	return nil
 }
 
-func NewCompiler(ph *common.PathHelper) (c compiler, err error) {
+func NewCompiler() (c compiler, err error) {
 	var configData []byte
 	// we need to include local config, to we pass true
-	configData, err = ioutil.ReadFile(ph.GetConfigPath(true))
+	configData, err = ioutil.ReadFile(paths.GetConfigPath(true))
 	if err != nil {
 		return
 	}
@@ -109,7 +110,7 @@ func NewCompiler(ph *common.PathHelper) (c compiler, err error) {
 	if err != nil {
 		return
 	}
-
-	c.drivers = getAllDrivers(ph, config)
+	c.config = config
+	c.drivers = getAllDrivers(config)
 	return
 }
