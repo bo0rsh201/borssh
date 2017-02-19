@@ -13,6 +13,38 @@ Let's see how it works
 
 ![intro](https://raw.githubusercontent.com/bo0rsh201/borssh/assets/record.gif)
 
+# Algorithm
+
+## Compile
+
+Compiles all files from config into ~/.borssh/section_name.compiled
+
+Calculates hash of all files and puts it into ~/.borssh/hash.compiled
+
+Includes all compiled files into local:
+- ~/.bash_profile
+- ~/.vimrc
+- ~/.inputrc
+
+*Doesn't create duplicate include line*
+
+## Connect
+Reads local hash, does ssh command that checks remote ~/.borssh/hash.compiled file
+
+If version is ok, opens bash session in this connection
+
+If version is old/absent, runs rsync of total ~/.borssh directory 
+
+and does same includes as on compile stage (but now on remote side)
+ 
+Syncs new ~/.borssh/hash.compiled file to remote host and then connects
+
+__The main thing is that config files are not changing so often and__ 
+
+__in 99% cases borssh doesn't bring any overhead at all__
+
+__(version is ok and we perform check and connect in single ssh command)__ 
+
 # Getting started
 You can get binaries for linux/darwin [here](https://github.com/bo0rsh201/borssh/releases/latest)
 
@@ -72,7 +104,7 @@ InitialSync = [ "hostname_mask" ]
 
 All files from these directives are compiled into single one 
 
-and are automatically included to local and remove ~/.bash_profile ~/.vimrc ~/.inputrc respectively
+and are automatically included to local and remote ~/.bash_profile ~/.vimrc ~/.inputrc respectively
 
 so you don't need to do any extra actions on local/remote host
 
