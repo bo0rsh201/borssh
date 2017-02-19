@@ -69,8 +69,6 @@ func (pp *ProgressPrinter) Start(message string) {
 				return
 			}
 		}
-		pp.wait <- struct{}{}
-		return
 	}(message)
 }
 
