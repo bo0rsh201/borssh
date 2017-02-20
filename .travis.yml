@@ -5,15 +5,15 @@ go:
 
 script:
 - go vet .
-- GOOS=linux go build -o bin/borssh_linux -i .
-- GOOS=darwin go build -o bin/borssh_darwin -i .
+- GOOS=linux go build -o $HOME/borssh_linux -i .
+- GOOS=darwin go build -o $HOME/borssh_darwin -i .
 
 deploy:
-  provider: releases
+- provider: releases
   api_key:
     secure: xLegEI6oq1WQt3iz7OELpAEHNEuBBIJQIbTo79nEISYpk0+TiBYReHQdj+lKaC8K7SPzwxtSi2dTpCyK6TcdhnvoTa/WHoJMX2DKu4PyFD7OP4cHeJvJPSuHGF3cI7iD+CIaPwF9IfHExQAl8MG88ClcA0kvP39bc78Fi9dZeBKs3EhN/m+MBk4d7RXf7bq6ca7gE9o4hyrmffXRIriFA9ah+qBetAwGL4nJZdTB16uipf+8Kk00EELhSZNQEpM4W2GBs/ClumsG2A/21YcSJ+Wtme3BzkYOU4s9zC22drESu/EJyHfI0hQhmEzA49Rrq+lZdHAwywR/6u2NDNXi+BQ4sdXTM0eXDuRJ77+IR//OJlAhYKmmE5yPZCcWMECNiNr4kHacwc6epWjPRWyoBD+7jzGr12Ut9jodOJZA0WCN7KA4/b3CTZIOGaXmi6nnsQ/wgCms5JsVrnMThHVpAsF4d9wHmiCDRPLxttk0GdXv+vZTkl7/u8HmtWC6xHNgRnV6SDuWZ6iJqzj+DTUlE6vM7bIsig6MXKifOleuUwp8qY7jRqyx+seV7nU6yPvXR3DVYWdaGlOhlvDTGZoLuGXWlKYdythh1bNx22KHMh9p7X6YiEJ2X3BsBJln0k79IrctCOZvdQEg6NtdVRXKdIi/mT+u67Nw+7DIjmVtPZ8=
   file:
-    - bin/borssh_linux
-    - bin/borssh_darwin
+    - $HOME/borssh_linux
+    - $HOME/borssh_darwin
   on:
     repo: bo0rsh201/borssh
