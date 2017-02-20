@@ -17,3 +17,4 @@ deploy:
     - $HOME/borssh_darwin
   on:
     repo: bo0rsh201/borssh
+    tags: true
