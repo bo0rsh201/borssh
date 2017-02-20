@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/bo0rsh201/borssh.svg?branch=master)](https://travis-ci.org/bo0rsh201/borssh)
 # borssh
 Is a utility that helps you to transfer your dotfiles 
 
