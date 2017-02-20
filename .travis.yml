@@ -1,0 +1,9 @@
+language: go
+
+go:
+  - tip
+
+script:
+  - go vet .
+  - GOOS=linux go build -o bin/borssh_linux -i .
+  - GOOS=darwin go build -o bin/borssh_darwin -i .
