@@ -51,7 +51,7 @@ You can get binaries for linux/darwin [here](https://github.com/bo0rsh201/borssh
 
 Or install it manually with
 ```
-go install github.com/bo0rsh201/borssh
+go get -u github.com/bo0rsh201/borssh
 ```
 *you should have Go [installed](https://golang.org/doc/install)*
 
